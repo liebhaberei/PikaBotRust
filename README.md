@@ -96,6 +96,10 @@ pub extern fn main() {
 
 ####  Implementation
 
+##### Setting digital pins without library
+
+[Rust AVR book](https://book.avr-rust.com/005.4-choosing-an-io-library.html)
+
 - [ ] implement analogWrite using Rust/ruduino(?)
 - [ ] implement Cytron Motor Driver (trivial with analogWrite), see [git](https://github.com/CytronTechnologies/CytronMotorDriver/blob/master/CytronMotorDriver.cpp)
 
