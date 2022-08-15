@@ -2,12 +2,189 @@
 
 #include <avr/io.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <util/delay.h>
 
+enum channel {
+    PWM_0A, PWM_0B, PWM_1A, PWM_1B, PWM_2A, PWM_2B
+};
 
+inline void set(volatile uint8_t *reg, int8_t bit_nr) {
+    *reg |= _BV(bit_nr);
+}
 
+inline void clear(volatile uint8_t *reg, int8_t bit_nr) {
+    *reg &= ~(_BV(bit_nr));
+}
+
+void duty(enum channel pwm_channel, uint8_t duty) {
+    switch(pwm_channel) {
+        case PWM_0A:
+            OCR0A = duty;
+            break;
+        case PWM_0B:
+            OCR0B = duty;
+            break;
+        case PWM_1A:
+            OCR1A = duty;
+            break;
+        case PWM_1B:
+            OCR1B = duty;
+            break;
+        case PWM_2A:
+            OCR2A = duty;
+            break;
+        case PWM_2B:
+            OCR2A = duty;
+            break;
+    }
+}
+
+void max(enum channel pwm_channel) {
+    switch(pwm_channel) {
+        case PWM_0A:
+            set(&DDRD, PD6); // OC0A as output
+            set(&PORTD, PD6); // OC0A as high
+            break;
+        case PWM_0B:
+            set(&DDRD, PD5); // OC0B as output
+            set(&PORTD, PD5); // OC0A as high
+            break;
+        case PWM_1A:
+            set(&DDRB, PB1); // OC1A as output
+            set(&PORTB, PB1); // OC0A as high
+            break;
+        case PWM_1B:
+            set(&DDRB, PB2); // OC1B as output
+            set(&PORTB, PB2); // OC0A as high
+            break;
+        case PWM_2A:
+            set(&DDRB, PB3); // OC2A as output
+            set(&PORTB, PB3); // OC0A as high
+            break;
+        case PWM_2B:
+            set(&DDRD, PD3); // OC2B as output
+            set(&PORTD, PD3); // OC0A as high
+            break;
+    }
+}
+
+void off(enum channel pwm_channel) {
+    switch(pwm_channel) {
+        case PWM_0A:
+            set(&DDRD, PD6); // OC0A as output
+            clear(&PORTD, PD6); // OC0A as high
+            break;
+        case PWM_0B:
+            set(&DDRD, PD5); // OC0B as output
+            clear(&PORTD, PD5); // OC0A as high
+            break;
+        case PWM_1A:
+            set(&DDRB, PB1); // OC1A as output
+            clear(&PORTB, PB1); // OC0A as high
+            break;
+        case PWM_1B:
+            set(&DDRB, PB2); // OC1B as output
+            clear(&PORTB, PB2); // OC0A as high
+            break;
+        case PWM_2A:
+            set(&DDRB, PB3); // OC2A as output
+            clear(&PORTB, PB3); // OC0A as high
+            break;
+        case PWM_2B:
+            set(&DDRD, PD3); // OC2B as output
+            clear(&PORTD, PD3); // OC0A as high
+            break;
+    }
+}
+
+void init_pwm(enum channel pwm_channel) {
+    switch(pwm_channel) {
+        case PWM_0A:
+            set(&DDRD, PD6); // OC0A as output
+        case PWM_0B:
+            if (pwm_channel == PWM_0B) {
+                set(&DDRD, PD5); // OC0B as output
+            }
+
+            // WGM0x = 0b011: Fast PWM
+            //                Top: 0xFF - Update of OCRx at: bottom - TOV Flag Set on: MAX
+            set(&TCCR0A, WGM00);
+            set(&TCCR0A, WGM01);
+            clear(&TCCR0B, WGM02);
+            // CS0x 0b001: clkIO, no prescaling
+            set(&TCCR0B, CS00);
+            clear(&TCCR0B, CS01);
+            clear(&TCCR0B, CS02);
+            break;
+        case PWM_1A:
+            break;
+        case PWM_1B:
+            break;
+        case PWM_2A:
+            break;
+        case PWM_2B:
+            break;
+    }
+}
+
+void pwm(enum channel pwm_channel, bool enable) {
+    switch(pwm_channel) {
+        case PWM_0A:
+            if (enable) {
+                // COM0Ax = 0b10: Clear OC0A on compare match
+                set(&TCCR0A, COM0A1);
+                clear(&TCCR0A, COM0A0);
+            } else {
+                // COM0Ax = 0b00: Normal port operation, OC0A disconnected
+                clear(&TCCR0A, COM0A1);
+                clear(&TCCR0A, COM0A0);
+
+                off(PWM_0A); // set pin as output and value to 0
+            }
+            break;
+        case PWM_0B:
+            if (enable) {
+                // COM0Bx = 0b10: Clear OC0B on compare match
+                set(&TCCR0A, COM0B1);
+                clear(&TCCR0A, COM0B0);
+            } else {
+                // COM0Bx = 0b00: Normal port operation, OC0B disconnected
+                clear(&TCCR0A, COM0B1);
+                clear(&TCCR0A, COM0B0);
+
+                off(PWM_0B); // set pin as output and value to 0
+            }
+            break;
+        case PWM_1A:
+            break;
+        case PWM_1B:
+            break;
+        case PWM_2A:
+            break;
+        case PWM_2B:
+            break;
+    }
+}
 
 int main (void) {
+    init_pwm(PWM_0A);
+
+    for(;;) {
+        max(PWM_1A);
+
+        pwm(PWM_0A, false);
+		
+        _delay_ms(1000);
+
+        pwm(PWM_0A, true); // enable PWM channel
+        duty(PWM_0A, 20); // set duty to 20 of 255
+
+        off(PWM_1A);
+
+        _delay_ms(1000);
+	}
+
 	// all PWM pins as output
     DDRB |= _BV(PB1); // OC1A
     DDRB |= _BV(PB2); // OC1B

@@ -1,3 +1,7 @@
 **/*.hex
 **/*.elf
 **/*.o
+
+test*
+*.log
+.vscode/*
